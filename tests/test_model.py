@@ -240,22 +240,21 @@ class TestCompiledModelProperty:
         input_shape = (height, width, 3)
         model = create_model(input_shape, num_classes)
 
-        # Verificar que el modelo está compilado (tiene compiled_metrics)
-        assert hasattr(model, 'compiled_metrics'), (
-            "El modelo debe estar compilado con metrics"
+        # Verificar que el modelo está compilado
+        assert model.compiled, (
+            "El modelo debe estar compilado"
         )
 
-        # Verificar que compiled_metrics no es None
-        assert model.compiled_metrics is not None, (
-            "El modelo debe tener compiled_metrics configurados"
+        # Obtener configuración de compilación
+        compile_config = model.get_compile_config()
+
+        # Verificar que metrics está configurado
+        assert 'metrics' in compile_config, (
+            "El modelo debe tener metrics en su configuración"
         )
 
-        # Verificar que hay métricas configuradas en compiled_metrics
-        # En Keras moderno, las métricas se almacenan en _metrics
-        has_metrics = (
-            hasattr(model.compiled_metrics, '_metrics') and
-            model.compiled_metrics._metrics is not None
-        )
-        assert has_metrics, (
-            "El modelo debe tener métricas en compiled_metrics"
+        # Verificar que accuracy está en las métricas
+        metrics = compile_config['metrics']
+        assert 'accuracy' in metrics, (
+            f"Se esperaba metric 'accuracy', encontradas {metrics}"
         )

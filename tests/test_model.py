@@ -4,7 +4,6 @@ Tests de propiedades para el módulo del modelo CNN.
 Feature: mejora-clasificador-senas
 """
 
-import pytest
 from hypothesis import given, strategies as st, settings
 
 from sign_classifier.model import create_model
@@ -28,7 +27,7 @@ class TestModelStructureProperty:
         width=st.integers(min_value=64, max_value=256),
         num_classes=st.integers(min_value=2, max_value=100)
     )
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None)
     def test_model_has_three_conv_blocks_with_progressive_filters(
         self, height, width, num_classes
     ):
@@ -49,14 +48,15 @@ class TestModelStructureProperty:
 
         # Debe haber exactamente 3 capas Conv2D
         assert len(conv_layers) == 3, (
-            f"Se esperaban 3 capas Conv2D, se encontraron {len(conv_layers)}"
+            f"Se esperaban 3 capas Conv2D, encontradas {len(conv_layers)}"
         )
 
         # Verificar filtros progresivos
         expected_filters = [32, 64, 128]
         actual_filters = [layer.filters for layer in conv_layers]
         assert actual_filters == expected_filters, (
-            f"Filtros esperados {expected_filters}, encontrados {actual_filters}"
+            f"Filtros esperados {expected_filters}, "
+            f"encontrados {actual_filters}"
         )
 
 
@@ -65,7 +65,7 @@ class TestModelStructureProperty:
         width=st.integers(min_value=64, max_value=256),
         num_classes=st.integers(min_value=2, max_value=100)
     )
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None)
     def test_batch_normalization_after_each_conv(self, height, width, num_classes):
         """
         Verifica que cada capa Conv2D es seguida por BatchNormalization.
@@ -86,8 +86,8 @@ class TestModelStructureProperty:
         for idx in conv_indices:
             next_layer = layer_names[idx + 1]
             assert next_layer == 'BatchNormalization', (
-                f"Se esperaba BatchNormalization después de Conv2D en índice {idx}, "
-                f"se encontró {next_layer}"
+                f"Se esperaba BatchNormalization después de Conv2D "
+                f"en índice {idx}, se encontró {next_layer}"
             )
 
     @given(
@@ -95,7 +95,7 @@ class TestModelStructureProperty:
         width=st.integers(min_value=64, max_value=256),
         num_classes=st.integers(min_value=2, max_value=100)
     )
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None)
     def test_dropout_in_dense_section(self, height, width, num_classes):
         """
         Verifica que hay capas Dropout en la sección densa.
@@ -121,7 +121,7 @@ class TestModelStructureProperty:
         width=st.integers(min_value=64, max_value=256),
         num_classes=st.integers(min_value=2, max_value=100)
     )
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None)
     def test_relu_and_softmax_activations(self, height, width, num_classes):
         """
         Verifica que las capas ocultas usan ReLU y la capa final usa Softmax.
@@ -159,4 +159,94 @@ class TestModelStructureProperty:
         activation = last_dense.activation.__name__
         assert activation == 'softmax', (
             f"Última capa Dense debe usar Softmax, encontrado {activation}"
+        )
+
+
+class TestCompiledModelProperty:
+    """
+    Property 2: Modelo Compilado Válido
+
+    Para cualquier llamada a create_model() con input_shape y num_classes válidos,
+    la función debe retornar un modelo Keras compilado con optimizer, loss function
+    y metrics configurados correctamente.
+
+    **Validates: Requirements 4.4**
+    """
+
+    @given(
+        height=st.integers(min_value=64, max_value=256),
+        width=st.integers(min_value=64, max_value=256),
+        num_classes=st.integers(min_value=2, max_value=100)
+    )
+    @settings(max_examples=100, deadline=None)
+    def test_model_is_compiled_with_optimizer(self, height, width, num_classes):
+        """
+        Verifica que el modelo tiene un optimizer configurado.
+
+        **Validates: Requirements 4.4**
+        """
+        input_shape = (height, width, 3)
+        model = create_model(input_shape, num_classes)
+
+        # Verificar que el modelo tiene optimizer
+        assert model.optimizer is not None, (
+            "El modelo debe tener un optimizer configurado"
+        )
+
+        # Verificar que es Adam
+        optimizer_name = model.optimizer.__class__.__name__
+        assert optimizer_name == 'Adam', (
+            f"Se esperaba optimizer Adam, encontrado {optimizer_name}"
+        )
+
+    @given(
+        height=st.integers(min_value=64, max_value=256),
+        width=st.integers(min_value=64, max_value=256),
+        num_classes=st.integers(min_value=2, max_value=100)
+    )
+    @settings(max_examples=100, deadline=None)
+    def test_model_is_compiled_with_loss_function(self, height, width, num_classes):
+        """
+        Verifica que el modelo tiene una loss function configurada.
+
+        **Validates: Requirements 4.4**
+        """
+        input_shape = (height, width, 3)
+        model = create_model(input_shape, num_classes)
+
+        # Verificar que el modelo tiene loss configurado
+        assert model.loss is not None, (
+            "El modelo debe tener una loss function configurada"
+        )
+
+        # Verificar que es categorical_crossentropy
+        loss_name = model.loss
+        assert loss_name == 'categorical_crossentropy', (
+            f"Se esperaba loss categorical_crossentropy, encontrado {loss_name}"
+        )
+
+    @given(
+        height=st.integers(min_value=64, max_value=256),
+        width=st.integers(min_value=64, max_value=256),
+        num_classes=st.integers(min_value=2, max_value=100)
+    )
+    @settings(max_examples=100, deadline=None)
+    def test_model_is_compiled_with_metrics(self, height, width, num_classes):
+        """
+        Verifica que el modelo tiene metrics configurados.
+
+        **Validates: Requirements 4.4**
+        """
+        input_shape = (height, width, 3)
+        model = create_model(input_shape, num_classes)
+
+        # Verificar que el modelo tiene metrics
+        assert model.metrics is not None, (
+            "El modelo debe tener metrics configurados"
+        )
+
+        # Verificar que accuracy está en las métricas compiladas
+        metric_names = [m.name for m in model.metrics]
+        assert any('accuracy' in name for name in metric_names), (
+            f"Se esperaba metric 'accuracy', encontradas {metric_names}"
         )

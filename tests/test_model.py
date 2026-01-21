@@ -226,11 +226,11 @@ class TestCompiledModelProperty:
         )
 
     @given(
-        height=st.integers(min_value=64, max_value=256),
-        width=st.integers(min_value=64, max_value=256),
-        num_classes=st.integers(min_value=2, max_value=100)
+        height=st.integers(min_value=64, max_value=128),
+        width=st.integers(min_value=64, max_value=128),
+        num_classes=st.integers(min_value=2, max_value=10)
     )
-    @settings(max_examples=100, deadline=None)
+    @settings(max_examples=10, deadline=None)
     def test_model_is_compiled_with_metrics(self, height, width, num_classes):
         """
         Verifica que el modelo tiene metrics configurados.

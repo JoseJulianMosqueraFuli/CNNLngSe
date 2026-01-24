@@ -86,6 +86,13 @@ poetry install
 poetry shell
 ```
 
+### Verificar instalación
+
+```bash
+# Ejecutar tests para verificar que todo funciona
+poetry run pytest -v
+```
+
 ---
 
 ## 📁 Estructura del Proyecto
@@ -93,20 +100,31 @@ poetry shell
 ```
 sign-classifier/
 ├── src/
-│   └── sign_classifier/
+│   └── sign_classifier/        # Paquete principal (código modernizado)
 │       ├── __init__.py
-│       ├── config.py        # Configuración centralizada
-│       ├── model.py         # Arquitectura CNN
-│       ├── data_loader.py   # Carga y augmentación de datos
-│       ├── train.py         # Script de entrenamiento
-│       └── predict.py       # Módulo de predicción
+│       ├── config.py           # Configuración centralizada
+│       ├── model.py            # Arquitectura CNN mejorada
+│       ├── data_loader.py      # Carga y augmentación de datos
+│       ├── train.py            # Script de entrenamiento moderno
+│       └── predict.py          # Módulo de predicción
 ├── tests/
-│   ├── test_model.py        # Tests de propiedades
-│   └── test_predict.py
+│   ├── __init__.py
+│   ├── test_model.py           # Tests de propiedades del modelo
+│   └── test_predict.py         # Tests de predicción
 ├── data/
-│   ├── entrenamiento/       # Datos de entrenamiento
-│   └── validacion/          # Datos de validación
-├── pyproject.toml           # Configuración de Poetry
+│   ├── entrenamiento/          # Datos de entrenamiento (por clase)
+│   │   ├── a/
+│   │   ├── b/
+│   │   └── c/
+│   └── validacion/             # Datos de validación (por clase)
+│       ├── a/
+│       ├── b/
+│       └── c/
+├── modelo/                     # Modelos entrenados (.keras)
+├── entrenar.py                 # Script legacy (deprecado)
+├── predecir.py                 # Script legacy (deprecado)
+├── pyproject.toml              # Configuración de Poetry
+├── poetry.lock                 # Lock de dependencias
 └── README.md
 ```
 
@@ -117,33 +135,43 @@ sign-classifier/
 ### Entrenamiento
 
 ```bash
-# Entrenar el modelo
-poetry run python entrenar.py
+# Entrenar el modelo usando el módulo modernizado
+poetry run python -m sign_classifier.train
 
 # El modelo se guardará en ./modelo/modelo.keras
 ```
 
 ### Predicción
 
-```bash
-# Predecir una imagen
-poetry run python predecir.py --imagen ruta/a/imagen.jpg
+```python
+# Ejemplo de predicción con el módulo modernizado
+from tensorflow.keras.models import load_model
+from sign_classifier.predict import load_and_preprocess_image, predict_class
+from sign_classifier.config import IMAGE_HEIGHT, IMAGE_WIDTH, CLASSES, MODEL_PATH
+
+# Cargar modelo entrenado
+model = load_model(MODEL_PATH)
+
+# Preprocesar imagen
+image = load_and_preprocess_image("ruta/a/imagen.jpg", (IMAGE_HEIGHT, IMAGE_WIDTH))
+
+# Predecir clase
+clase = predict_class(model, image, CLASSES)
+print(f"Clase predicha: {clase}")
 ```
 
-### Uso programático
+### Uso programático del modelo
 
 ```python
 from sign_classifier.model import create_model
 from sign_classifier.config import IMAGE_SHAPE, NUM_CLASSES
 
-# Crear modelo
+# Crear modelo desde cero
 model = create_model(IMAGE_SHAPE, NUM_CLASSES)
 
-# Cargar pesos entrenados
-model.load_weights("modelo/modelo.keras")
-
-# Realizar predicción
-prediction = model.predict(imagen_preprocesada)
+# O cargar modelo entrenado
+from tensorflow.keras.models import load_model
+model = load_model("modelo/modelo.keras")
 ```
 
 ---

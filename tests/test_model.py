@@ -1,12 +1,71 @@
 """
-Tests de propiedades para el módulo del modelo CNN.
+Tests para el módulo del modelo CNN.
+
+Incluye tests unitarios básicos y tests de propiedades.
 
 Feature: mejora-clasificador-senas
 """
 
+import pytest
 from hypothesis import given, strategies as st, settings
 
 from sign_classifier.model import create_model
+from sign_classifier.config import IMAGE_SHAPE, NUM_CLASSES
+
+
+# =============================================================================
+# Tests Unitarios Básicos
+# =============================================================================
+
+class TestModelUnitTests:
+    """Tests unitarios básicos para el modelo CNN."""
+
+    def test_create_model_with_default_config(self):
+        """Verifica que el modelo se crea correctamente con la configuración por defecto."""
+        model = create_model(IMAGE_SHAPE, NUM_CLASSES)
+        
+        assert model is not None
+        assert model.input_shape == (None, *IMAGE_SHAPE)
+        assert model.output_shape == (None, NUM_CLASSES)
+
+    def test_create_model_layer_count(self):
+        """Verifica que el modelo tiene el número correcto de capas."""
+        model = create_model(IMAGE_SHAPE, NUM_CLASSES)
+        
+        # 3 Conv2D + 3 BatchNorm + 3 MaxPool + Flatten + 2 Dense + 2 Dropout + 1 Dense output = 15
+        assert len(model.layers) == 15
+
+    def test_create_model_is_compiled(self):
+        """Verifica que el modelo está compilado."""
+        model = create_model(IMAGE_SHAPE, NUM_CLASSES)
+        
+        assert model.optimizer is not None
+        assert model.loss is not None
+
+    def test_create_model_invalid_input_shape_not_tuple(self):
+        """Verifica que se lanza error con input_shape inválido (no tupla)."""
+        with pytest.raises(ValueError, match="input_shape debe ser una tupla"):
+            create_model([150, 150, 3], NUM_CLASSES)
+
+    def test_create_model_invalid_input_shape_wrong_length(self):
+        """Verifica que se lanza error con input_shape de longitud incorrecta."""
+        with pytest.raises(ValueError, match="input_shape debe ser una tupla de 3 elementos"):
+            create_model((150, 150), NUM_CLASSES)
+
+    def test_create_model_invalid_num_classes_not_int(self):
+        """Verifica que se lanza error con num_classes no entero."""
+        with pytest.raises(ValueError, match="num_classes debe ser un entero"):
+            create_model(IMAGE_SHAPE, "3")
+
+    def test_create_model_invalid_num_classes_less_than_two(self):
+        """Verifica que se lanza error con num_classes < 2."""
+        with pytest.raises(ValueError, match="num_classes debe ser un entero >= 2"):
+            create_model(IMAGE_SHAPE, 1)
+
+
+# =============================================================================
+# Tests de Propiedades
+# =============================================================================
 
 
 class TestModelStructureProperty:

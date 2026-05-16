@@ -18,6 +18,7 @@ from .config import (
 from .train import train_model
 from .predict import load_and_preprocess_image, predict_class
 from .evaluate import evaluate_model
+from .exceptions import SignClassifierError
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +126,15 @@ def main() -> None:
     setup_logging()
     parser = build_parser()
     args = parser.parse_args()
-    args.func(args)
+
+    try:
+        args.func(args)
+    except SignClassifierError as e:
+        logger.error("Error: %s", e)
+        sys.exit(1)
+    except KeyboardInterrupt:
+        logger.info("Operación cancelada por el usuario")
+        sys.exit(0)
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ from hypothesis import given, strategies as st, settings, assume
 from sign_classifier.predict import load_and_preprocess_image, predict_class
 from sign_classifier.model import create_model
 from sign_classifier.config import IMAGE_HEIGHT, IMAGE_WIDTH, CLASSES
+from sign_classifier.exceptions import PredictionError
 
 
 # =============================================================================
@@ -47,17 +48,17 @@ class TestPreprocessingUnitTests:
 
     def test_load_and_preprocess_image_file_not_found(self):
         """Verifica que se lanza error cuando la imagen no existe."""
-        with pytest.raises(FileNotFoundError, match="Imagen no encontrada"):
+        with pytest.raises(PredictionError, match="Imagen no encontrada"):
             load_and_preprocess_image("/ruta/inexistente/imagen.png", (150, 150))
 
     def test_load_and_preprocess_image_invalid_target_size_not_tuple(self):
         """Verifica que se lanza error con target_size no tupla."""
-        with pytest.raises(ValueError, match="target_size debe ser una tupla"):
+        with pytest.raises(PredictionError, match="target_size debe ser una tupla"):
             load_and_preprocess_image("test.png", [150, 150])
 
     def test_load_and_preprocess_image_invalid_target_size_wrong_length(self):
         """Verifica que se lanza error con target_size de longitud incorrecta."""
-        with pytest.raises(ValueError, match="target_size debe ser una tupla de 2 elementos"):
+        with pytest.raises(PredictionError, match="target_size debe ser una tupla de 2 elementos"):
             load_and_preprocess_image("test.png", (150,))
 
 
@@ -79,7 +80,7 @@ class TestPredictionUnitTests:
         model = create_model((64, 64, 3), 3)
         image = np.random.rand(1, 64, 64, 3).astype(np.float32)
         
-        with pytest.raises(ValueError, match="classes debe ser una lista no vacía"):
+        with pytest.raises(PredictionError, match="classes debe ser una lista no vacía"):
             predict_class(model, image, [])
 
     def test_predict_class_invalid_classes_not_list(self):
@@ -87,7 +88,7 @@ class TestPredictionUnitTests:
         model = create_model((64, 64, 3), 3)
         image = np.random.rand(1, 64, 64, 3).astype(np.float32)
         
-        with pytest.raises(ValueError, match="classes debe ser una lista no vacía"):
+        with pytest.raises(PredictionError, match="classes debe ser una lista no vacía"):
             predict_class(model, image, "abc")
 
     def test_predict_class_invalid_image_not_array(self):
@@ -95,7 +96,7 @@ class TestPredictionUnitTests:
         model = create_model((64, 64, 3), 3)
         classes = ["a", "b", "c"]
         
-        with pytest.raises(ValueError, match="image debe ser un array numpy"):
+        with pytest.raises(PredictionError, match="image debe ser un array numpy"):
             predict_class(model, "not_an_array", classes)
 
     def test_predict_class_invalid_image_wrong_shape(self):
@@ -104,7 +105,7 @@ class TestPredictionUnitTests:
         image = np.random.rand(64, 64, 3).astype(np.float32)  # Sin dimensión batch
         classes = ["a", "b", "c"]
         
-        with pytest.raises(ValueError, match="image debe tener shape"):
+        with pytest.raises(PredictionError, match="image debe tener shape"):
             predict_class(model, image, classes)
 
 

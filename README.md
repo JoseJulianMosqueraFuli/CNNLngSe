@@ -121,8 +121,6 @@ sign-classifier/
 │       ├── b/
 │       └── c/
 ├── modelo/                     # Modelos entrenados (.keras)
-├── entrenar.py                 # Script legacy (deprecado)
-├── predecir.py                 # Script legacy (deprecado)
 ├── pyproject.toml              # Configuración de Poetry
 ├── poetry.lock                 # Lock de dependencias
 └── README.md

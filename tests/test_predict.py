@@ -11,18 +11,19 @@ import tempfile
 
 import numpy as np
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from PIL import Image
-from hypothesis import given, strategies as st, settings, assume
 
-from sign_classifier.predict import load_and_preprocess_image, predict_class
-from sign_classifier.model import create_model
-from sign_classifier.config import IMAGE_HEIGHT, IMAGE_WIDTH, CLASSES
+from sign_classifier.config import CLASSES, IMAGE_HEIGHT, IMAGE_WIDTH
 from sign_classifier.exceptions import PredictionError
-
+from sign_classifier.model import create_model
+from sign_classifier.predict import load_and_preprocess_image, predict_class
 
 # =============================================================================
 # Tests Unitarios Básicos
 # =============================================================================
+
 
 class TestPreprocessingUnitTests:
     """Tests unitarios básicos para el preprocesamiento de imágenes."""
@@ -31,15 +32,15 @@ class TestPreprocessingUnitTests:
         """Verifica que una imagen válida se preprocesa correctamente."""
         # Crear imagen temporal
         img_array = np.random.randint(0, 256, (100, 100, 3), dtype=np.uint8)
-        img = Image.fromarray(img_array, mode='RGB')
-        
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        img = Image.fromarray(img_array, mode="RGB")
+
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             img.save(f.name)
             temp_path = f.name
-        
+
         try:
             result = load_and_preprocess_image(temp_path, (IMAGE_HEIGHT, IMAGE_WIDTH))
-            
+
             assert result.shape == (1, IMAGE_HEIGHT, IMAGE_WIDTH, 3)
             assert result.dtype == np.float32 or result.dtype == np.float64
             assert np.all(result >= 0.0) and np.all(result <= 1.0)
@@ -58,7 +59,8 @@ class TestPreprocessingUnitTests:
 
     def test_load_and_preprocess_image_invalid_target_size_wrong_length(self):
         """Verifica que se lanza error con target_size de longitud incorrecta."""
-        with pytest.raises(PredictionError, match="target_size debe ser una tupla de 2 elementos"):
+        expected = "target_size debe ser una tupla de 2 elementos"
+        with pytest.raises(PredictionError, match=expected):
             load_and_preprocess_image("test.png", (150,))
 
 
@@ -70,32 +72,34 @@ class TestPredictionUnitTests:
         model = create_model((64, 64, 3), 3)
         image = np.random.rand(1, 64, 64, 3).astype(np.float32)
         classes = ["a", "b", "c"]
-        
+
         result = predict_class(model, image, classes)
-        
+
         assert result in classes
 
     def test_predict_class_invalid_classes_empty(self):
         """Verifica que se lanza error con lista de clases vacía."""
         model = create_model((64, 64, 3), 3)
         image = np.random.rand(1, 64, 64, 3).astype(np.float32)
-        
-        with pytest.raises(PredictionError, match="classes debe ser una lista no vacía"):
+
+        expected = "classes debe ser una lista no vacía"
+        with pytest.raises(PredictionError, match=expected):
             predict_class(model, image, [])
 
     def test_predict_class_invalid_classes_not_list(self):
         """Verifica que se lanza error con clases no lista."""
         model = create_model((64, 64, 3), 3)
         image = np.random.rand(1, 64, 64, 3).astype(np.float32)
-        
-        with pytest.raises(PredictionError, match="classes debe ser una lista no vacía"):
+
+        expected = "classes debe ser una lista no vacía"
+        with pytest.raises(PredictionError, match=expected):
             predict_class(model, image, "abc")
 
     def test_predict_class_invalid_image_not_array(self):
         """Verifica que se lanza error con imagen no array."""
         model = create_model((64, 64, 3), 3)
         classes = ["a", "b", "c"]
-        
+
         with pytest.raises(PredictionError, match="image debe ser un array numpy"):
             predict_class(model, "not_an_array", classes)
 
@@ -104,7 +108,7 @@ class TestPredictionUnitTests:
         model = create_model((64, 64, 3), 3)
         image = np.random.rand(64, 64, 3).astype(np.float32)  # Sin dimensión batch
         classes = ["a", "b", "c"]
-        
+
         with pytest.raises(PredictionError, match="image debe tener shape"):
             predict_class(model, image, classes)
 
@@ -129,7 +133,7 @@ class TestImagePreprocessingProperty:
         height=st.integers(min_value=32, max_value=300),
         width=st.integers(min_value=32, max_value=300),
         target_height=st.integers(min_value=32, max_value=256),
-        target_width=st.integers(min_value=32, max_value=256)
+        target_width=st.integers(min_value=32, max_value=256),
     )
     @settings(max_examples=100, deadline=None)
     def test_preprocessed_image_has_correct_shape(
@@ -143,9 +147,9 @@ class TestImagePreprocessingProperty:
         """
         # Crear imagen temporal de prueba
         img_array = np.random.randint(0, 256, (height, width, 3), dtype=np.uint8)
-        img = Image.fromarray(img_array, mode='RGB')
+        img = Image.fromarray(img_array, mode="RGB")
 
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             img.save(f.name)
             temp_path = f.name
 
@@ -163,7 +167,7 @@ class TestImagePreprocessingProperty:
 
     @given(
         height=st.integers(min_value=32, max_value=200),
-        width=st.integers(min_value=32, max_value=200)
+        width=st.integers(min_value=32, max_value=200),
     )
     @settings(max_examples=100, deadline=None)
     def test_preprocessed_image_values_normalized(self, height, width):
@@ -174,9 +178,9 @@ class TestImagePreprocessingProperty:
         """
         # Crear imagen temporal con valores variados
         img_array = np.random.randint(0, 256, (height, width, 3), dtype=np.uint8)
-        img = Image.fromarray(img_array, mode='RGB')
+        img = Image.fromarray(img_array, mode="RGB")
 
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             img.save(f.name)
             temp_path = f.name
 
@@ -196,7 +200,7 @@ class TestImagePreprocessingProperty:
 
     @given(
         height=st.integers(min_value=32, max_value=200),
-        width=st.integers(min_value=32, max_value=200)
+        width=st.integers(min_value=32, max_value=200),
     )
     @settings(max_examples=100, deadline=None)
     def test_preprocessed_image_is_numpy_array(self, height, width):
@@ -206,9 +210,9 @@ class TestImagePreprocessingProperty:
         **Validates: Requirements 6.3**
         """
         img_array = np.random.randint(0, 256, (height, width, 3), dtype=np.uint8)
-        img = Image.fromarray(img_array, mode='RGB')
+        img = Image.fromarray(img_array, mode="RGB")
 
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             img.save(f.name)
             temp_path = f.name
 
@@ -235,9 +239,7 @@ class TestDeterministicPredictionProperty:
     **Validates: Requirements 4.5, 6.3**
     """
 
-    @given(
-        num_classes=st.integers(min_value=2, max_value=10)
-    )
+    @given(num_classes=st.integers(min_value=2, max_value=10))
     @settings(max_examples=20, deadline=None)
     def test_prediction_returns_valid_class(self, num_classes):
         """
@@ -256,13 +258,9 @@ class TestDeterministicPredictionProperty:
         result = predict_class(model, image, classes)
 
         # Verificar que el resultado es una clase válida
-        assert result in classes, (
-            f"Clase predicha '{result}' no está en {classes}"
-        )
+        assert result in classes, f"Clase predicha '{result}' no está en {classes}"
 
-    @given(
-        seed=st.integers(min_value=0, max_value=10000)
-    )
+    @given(seed=st.integers(min_value=0, max_value=10000))
     @settings(max_examples=20, deadline=None)
     def test_prediction_is_deterministic(self, seed):
         """
@@ -295,7 +293,7 @@ class TestDeterministicPredictionProperty:
 
     @given(
         height=st.integers(min_value=32, max_value=128),
-        width=st.integers(min_value=32, max_value=128)
+        width=st.integers(min_value=32, max_value=128),
     )
     @settings(max_examples=20, deadline=None)
     def test_prediction_with_different_image_sizes(self, height, width):
@@ -315,6 +313,4 @@ class TestDeterministicPredictionProperty:
         result = predict_class(model, image, CLASSES)
 
         # Verificar que el resultado es una clase válida
-        assert result in CLASSES, (
-            f"Clase predicha '{result}' no está en {CLASSES}"
-        )
+        assert result in CLASSES, f"Clase predicha '{result}' no está en {CLASSES}"

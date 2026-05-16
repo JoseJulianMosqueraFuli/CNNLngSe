@@ -4,16 +4,16 @@ Módulo del modelo CNN para clasificación de señas.
 Define la arquitectura de la red neuronal convolucional mejorada.
 """
 
-from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import (
-    Conv2D,
-    MaxPooling2D,
     BatchNormalization,
-    Flatten,
+    Conv2D,
     Dense,
     Dropout,
+    Flatten,
     Input,
+    MaxPooling2D,
 )
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
 
 from .config import LEARNING_RATE
@@ -40,36 +40,35 @@ def create_model(input_shape: tuple, num_classes: int) -> Sequential:
     if not isinstance(num_classes, int) or num_classes < 2:
         raise ValueError("num_classes debe ser un entero >= 2")
 
-    model = Sequential([
-        Input(shape=input_shape),
-        # Bloque Convolucional 1 (32 filtros)
-        Conv2D(32, (3, 3), activation='relu'),
-        BatchNormalization(),
-        MaxPooling2D(pool_size=(2, 2)),
-
-        # Bloque Convolucional 2 (64 filtros)
-        Conv2D(64, (3, 3), activation='relu'),
-        BatchNormalization(),
-        MaxPooling2D(pool_size=(2, 2)),
-
-        # Bloque Convolucional 3 (128 filtros)
-        Conv2D(128, (3, 3), activation='relu'),
-        BatchNormalization(),
-        MaxPooling2D(pool_size=(2, 2)),
-
-        # Capas Densas
-        Flatten(),
-        Dense(256, activation='relu'),
-        Dropout(0.5),
-        Dense(128, activation='relu'),
-        Dropout(0.3),
-        Dense(num_classes, activation='softmax'),
-    ])
+    model = Sequential(
+        [
+            Input(shape=input_shape),
+            # Bloque Convolucional 1 (32 filtros)
+            Conv2D(32, (3, 3), activation="relu"),
+            BatchNormalization(),
+            MaxPooling2D(pool_size=(2, 2)),
+            # Bloque Convolucional 2 (64 filtros)
+            Conv2D(64, (3, 3), activation="relu"),
+            BatchNormalization(),
+            MaxPooling2D(pool_size=(2, 2)),
+            # Bloque Convolucional 3 (128 filtros)
+            Conv2D(128, (3, 3), activation="relu"),
+            BatchNormalization(),
+            MaxPooling2D(pool_size=(2, 2)),
+            # Capas Densas
+            Flatten(),
+            Dense(256, activation="relu"),
+            Dropout(0.5),
+            Dense(128, activation="relu"),
+            Dropout(0.3),
+            Dense(num_classes, activation="softmax"),
+        ]
+    )
 
     model.compile(
         optimizer=Adam(learning_rate=LEARNING_RATE),
-        loss='categorical_crossentropy',
-        metrics=['accuracy']
+        loss="categorical_crossentropy",
+        metrics=["accuracy"],
     )
 
     return model

@@ -5,20 +5,20 @@ import sys
 from tensorflow.keras.models import load_model
 
 from .config import (
+    BATCH_SIZE,
+    CLASSES,
+    EPOCHS,
     IMAGE_HEIGHT,
     IMAGE_WIDTH,
-    EPOCHS,
-    BATCH_SIZE,
+    MODEL_PATH,
     TRAINING_DATA_PATH,
     VALIDATION_DATA_PATH,
-    MODEL_PATH,
-    CLASSES,
     setup_logging,
 )
-from .train import train_model
-from .predict import load_and_preprocess_image, predict_class
 from .evaluate import evaluate_model
 from .exceptions import SignClassifierError
+from .predict import load_and_preprocess_image, predict_class
+from .train import train_model
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +93,7 @@ def build_parser() -> argparse.ArgumentParser:
     train_parser.set_defaults(func=train)
 
     predict_parser = subparsers.add_parser("predict", help="Predecir una imagen")
-    predict_parser.add_argument(
-        "image", type=str, help="Ruta a la imagen a clasificar"
-    )
+    predict_parser.add_argument("image", type=str, help="Ruta a la imagen a clasificar")
     predict_parser.add_argument(
         "--model-path",
         type=str,

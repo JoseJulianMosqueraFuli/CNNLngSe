@@ -9,26 +9,26 @@ import logging
 from pathlib import Path
 
 from tensorflow.keras.callbacks import (
-    ModelCheckpoint,
     EarlyStopping,
+    ModelCheckpoint,
     ReduceLROnPlateau,
     TensorBoard,
 )
 
 from .config import (
-    IMAGE_HEIGHT,
-    IMAGE_WIDTH,
-    IMAGE_SHAPE,
-    EPOCHS,
     BATCH_SIZE,
+    EPOCHS,
+    IMAGE_HEIGHT,
+    IMAGE_SHAPE,
+    IMAGE_WIDTH,
+    LOG_DIR,
+    MODEL_PATH,
+    NUM_CLASSES,
     TRAINING_DATA_PATH,
     VALIDATION_DATA_PATH,
-    MODEL_PATH,
-    LOG_DIR,
-    NUM_CLASSES,
 )
-from .model import create_model
 from .data_loader import create_data_generators
+from .model import create_model
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def train_model(
     train_path: str = TRAINING_DATA_PATH,
     val_path: str = VALIDATION_DATA_PATH,
     model_path: str = MODEL_PATH,
-    verbose: int = 1
+    verbose: int = 1,
 ):
     """
     Entrena el modelo CNN con los datos proporcionados.
@@ -64,42 +64,29 @@ def train_model(
         train_path=train_path,
         val_path=val_path,
         target_size=(IMAGE_HEIGHT, IMAGE_WIDTH),
-        batch_size=batch_size
+        batch_size=batch_size,
     )
 
     # Crear modelo
-    model = create_model(
-        input_shape=IMAGE_SHAPE,
-        num_classes=NUM_CLASSES
-    )
+    model = create_model(input_shape=IMAGE_SHAPE, num_classes=NUM_CLASSES)
 
     # Configurar callbacks
     callbacks = [
         ModelCheckpoint(
             filepath=model_path,
-            monitor='val_accuracy',
+            monitor="val_accuracy",
             save_best_only=True,
-            verbose=verbose
+            verbose=verbose,
         ),
         EarlyStopping(
-            monitor='val_loss',
-            patience=5,
-            restore_best_weights=True,
-            verbose=verbose
+            monitor="val_loss", patience=5, restore_best_weights=True, verbose=verbose
         ),
         ReduceLROnPlateau(
-            monitor='val_loss',
-            factor=0.5,
-            patience=3,
-            min_lr=1e-6,
-            verbose=verbose
+            monitor="val_loss", factor=0.5, patience=3, min_lr=1e-6, verbose=verbose
         ),
         TensorBoard(
-            log_dir=LOG_DIR,
-            histogram_freq=1,
-            write_graph=True,
-            update_freq='epoch'
-        )
+            log_dir=LOG_DIR, histogram_freq=1, write_graph=True, update_freq="epoch"
+        ),
     ]
 
     # Entrenar modelo
@@ -108,7 +95,7 @@ def train_model(
         epochs=epochs,
         validation_data=val_ds,
         callbacks=callbacks,
-        verbose=verbose
+        verbose=verbose,
     )
 
     # Guardar modelo final en formato .keras
@@ -128,7 +115,7 @@ def main():
 
     _, history = train_model()
 
-    best_val_acc = max(history.history['val_accuracy'])
+    best_val_acc = max(history.history["val_accuracy"])
     logger.info("Entrenamiento completado. Mejor accuracy: %.4f", best_val_acc)
     logger.info("Modelo guardado en: %s", MODEL_PATH)
 

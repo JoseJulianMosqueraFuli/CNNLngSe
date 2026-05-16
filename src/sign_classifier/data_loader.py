@@ -3,8 +3,6 @@ from pathlib import Path
 
 import tensorflow as tf
 
-from .config import IMAGE_HEIGHT, IMAGE_WIDTH
-
 logger = logging.getLogger(__name__)
 
 AUGMENTATION = {
@@ -20,13 +18,9 @@ def _parse_class_names(path: str) -> list[str]:
     data_dir = Path(path)
     if not data_dir.exists():
         raise FileNotFoundError(f"Directorio no encontrado: {path}")
-    class_names = sorted(
-        [d.name for d in data_dir.iterdir() if d.is_dir()]
-    )
+    class_names = sorted([d.name for d in data_dir.iterdir() if d.is_dir()])
     if not class_names:
-        raise ValueError(
-            f"No se encontraron subdirectorios (clases) en: {path}"
-        )
+        raise ValueError(f"No se encontraron subdirectorios (clases) en: {path}")
     return class_names
 
 
@@ -39,13 +33,15 @@ def _augment(image: tf.Tensor, label: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
         )
     if AUGMENTATION["contrast_lower"] and AUGMENTATION["contrast_upper"]:
         image = tf.image.random_contrast(
-            image, lower=AUGMENTATION["contrast_lower"],
-            upper=AUGMENTATION["contrast_upper"]
+            image,
+            lower=AUGMENTATION["contrast_lower"],
+            upper=AUGMENTATION["contrast_upper"],
         )
     if AUGMENTATION["rotation_max_degrees"]:
         angle = tf.random.uniform(
-            [], -AUGMENTATION["rotation_max_degrees"],
-            AUGMENTATION["rotation_max_degrees"]
+            [],
+            -AUGMENTATION["rotation_max_degrees"],
+            AUGMENTATION["rotation_max_degrees"],
         ) * (3.14159265 / 180.0)
         image = tfa_image_rotate(image, angle)
     return image, label
@@ -98,29 +94,27 @@ def create_data_generators(
         shuffle=False,
     )
 
-    AUTOTUNE = tf.data.AUTOTUNE
-    train_ds = train_ds.map(_normalize, num_parallel_calls=AUTOTUNE)
-    train_ds = train_ds.map(_augment, num_parallel_calls=AUTOTUNE)
-    train_ds = train_ds.prefetch(AUTOTUNE)
+    autotune = tf.data.AUTOTUNE
+    train_ds = train_ds.map(_normalize, num_parallel_calls=autotune)
+    train_ds = train_ds.map(_augment, num_parallel_calls=autotune)
+    train_ds = train_ds.prefetch(autotune)
 
-    val_ds = val_ds.map(_normalize, num_parallel_calls=AUTOTUNE)
-    val_ds = val_ds.prefetch(AUTOTUNE)
+    val_ds = val_ds.map(_normalize, num_parallel_calls=autotune)
+    val_ds = val_ds.prefetch(autotune)
 
     train_size = sum(1 for _ in Path(train_path).rglob("*") if _.is_file())
     val_size = sum(1 for _ in Path(val_path).rglob("*") if _.is_file())
 
     if train_size == 0:
-        raise ValueError(
-            f"No se encontraron imágenes en entrenamiento: {train_path}"
-        )
+        raise ValueError(f"No se encontraron imágenes en entrenamiento: {train_path}")
     if val_size == 0:
-        raise ValueError(
-            f"No se encontraron imágenes en validación: {val_path}"
-        )
+        raise ValueError(f"No se encontraron imágenes en validación: {val_path}")
 
     logger.info(
         "Datos cargados: %d entrenamiento, %d validación, %d clases",
-        train_size, val_size, len(class_names)
+        train_size,
+        val_size,
+        len(class_names),
     )
 
     return train_ds, val_ds, class_names

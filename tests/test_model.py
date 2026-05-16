@@ -7,23 +7,24 @@ Feature: mejora-clasificador-senas
 """
 
 import pytest
-from hypothesis import given, strategies as st, settings
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
-from sign_classifier.model import create_model
 from sign_classifier.config import IMAGE_SHAPE, NUM_CLASSES
-
+from sign_classifier.model import create_model
 
 # =============================================================================
 # Tests Unitarios Básicos
 # =============================================================================
 
+
 class TestModelUnitTests:
     """Tests unitarios básicos para el modelo CNN."""
 
     def test_create_model_with_default_config(self):
-        """Verifica que el modelo se crea correctamente con la configuración por defecto."""
+        """Verifica que el modelo se crea correctamente con la config por defecto."""
         model = create_model(IMAGE_SHAPE, NUM_CLASSES)
-        
+
         assert model is not None
         assert model.input_shape == (None, *IMAGE_SHAPE)
         assert model.output_shape == (None, NUM_CLASSES)
@@ -31,14 +32,13 @@ class TestModelUnitTests:
     def test_create_model_layer_count(self):
         """Verifica que el modelo tiene el número correcto de capas."""
         model = create_model(IMAGE_SHAPE, NUM_CLASSES)
-        
-        # 3 Conv2D + 3 BatchNorm + 3 MaxPool + Flatten + 2 Dense + 2 Dropout + 1 Dense output = 15
+
         assert len(model.layers) == 15
 
     def test_create_model_is_compiled(self):
         """Verifica que el modelo está compilado."""
         model = create_model(IMAGE_SHAPE, NUM_CLASSES)
-        
+
         assert model.optimizer is not None
         assert model.loss is not None
 
@@ -49,7 +49,8 @@ class TestModelUnitTests:
 
     def test_create_model_invalid_input_shape_wrong_length(self):
         """Verifica que se lanza error con input_shape de longitud incorrecta."""
-        with pytest.raises(ValueError, match="input_shape debe ser una tupla de 3 elementos"):
+        expected = "input_shape debe ser una tupla de 3 elementos"
+        with pytest.raises(ValueError, match=expected):
             create_model((150, 150), NUM_CLASSES)
 
     def test_create_model_invalid_num_classes_not_int(self):
@@ -84,7 +85,7 @@ class TestModelStructureProperty:
     @given(
         height=st.integers(min_value=64, max_value=256),
         width=st.integers(min_value=64, max_value=256),
-        num_classes=st.integers(min_value=2, max_value=100)
+        num_classes=st.integers(min_value=2, max_value=100),
     )
     @settings(max_examples=100, deadline=None)
     def test_model_has_three_conv_blocks_with_progressive_filters(
@@ -101,8 +102,7 @@ class TestModelStructureProperty:
 
         # Extraer capas Conv2D
         conv_layers = [
-            layer for layer in model.layers
-            if layer.__class__.__name__ == 'Conv2D'
+            layer for layer in model.layers if layer.__class__.__name__ == "Conv2D"
         ]
 
         # Debe haber exactamente 3 capas Conv2D
@@ -114,15 +114,13 @@ class TestModelStructureProperty:
         expected_filters = [32, 64, 128]
         actual_filters = [layer.filters for layer in conv_layers]
         assert actual_filters == expected_filters, (
-            f"Filtros esperados {expected_filters}, "
-            f"encontrados {actual_filters}"
+            f"Filtros esperados {expected_filters}, encontrados {actual_filters}"
         )
-
 
     @given(
         height=st.integers(min_value=64, max_value=256),
         width=st.integers(min_value=64, max_value=256),
-        num_classes=st.integers(min_value=2, max_value=100)
+        num_classes=st.integers(min_value=2, max_value=100),
     )
     @settings(max_examples=100, deadline=None)
     def test_batch_normalization_after_each_conv(self, height, width, num_classes):
@@ -137,14 +135,12 @@ class TestModelStructureProperty:
         layer_names = [layer.__class__.__name__ for layer in model.layers]
 
         # Encontrar índices de Conv2D
-        conv_indices = [
-            i for i, name in enumerate(layer_names) if name == 'Conv2D'
-        ]
+        conv_indices = [i for i, name in enumerate(layer_names) if name == "Conv2D"]
 
         # Verificar que después de cada Conv2D hay BatchNormalization
         for idx in conv_indices:
             next_layer = layer_names[idx + 1]
-            assert next_layer == 'BatchNormalization', (
+            assert next_layer == "BatchNormalization", (
                 f"Se esperaba BatchNormalization después de Conv2D "
                 f"en índice {idx}, se encontró {next_layer}"
             )
@@ -152,7 +148,7 @@ class TestModelStructureProperty:
     @given(
         height=st.integers(min_value=64, max_value=256),
         width=st.integers(min_value=64, max_value=256),
-        num_classes=st.integers(min_value=2, max_value=100)
+        num_classes=st.integers(min_value=2, max_value=100),
     )
     @settings(max_examples=100, deadline=None)
     def test_dropout_in_dense_section(self, height, width, num_classes):
@@ -166,8 +162,7 @@ class TestModelStructureProperty:
 
         # Contar capas Dropout
         dropout_layers = [
-            layer for layer in model.layers
-            if layer.__class__.__name__ == 'Dropout'
+            layer for layer in model.layers if layer.__class__.__name__ == "Dropout"
         ]
 
         # Debe haber al menos una capa Dropout
@@ -178,7 +173,7 @@ class TestModelStructureProperty:
     @given(
         height=st.integers(min_value=64, max_value=256),
         width=st.integers(min_value=64, max_value=256),
-        num_classes=st.integers(min_value=2, max_value=100)
+        num_classes=st.integers(min_value=2, max_value=100),
     )
     @settings(max_examples=100, deadline=None)
     def test_relu_and_softmax_activations(self, height, width, num_classes):
@@ -192,31 +187,29 @@ class TestModelStructureProperty:
 
         # Verificar capas Conv2D usan ReLU
         conv_layers = [
-            layer for layer in model.layers
-            if layer.__class__.__name__ == 'Conv2D'
+            layer for layer in model.layers if layer.__class__.__name__ == "Conv2D"
         ]
         for layer in conv_layers:
             activation = layer.activation.__name__
-            assert activation == 'relu', (
+            assert activation == "relu", (
                 f"Conv2D debe usar ReLU, encontrado {activation}"
             )
 
         # Verificar capas Dense (excepto la última) usan ReLU
         dense_layers = [
-            layer for layer in model.layers
-            if layer.__class__.__name__ == 'Dense'
+            layer for layer in model.layers if layer.__class__.__name__ == "Dense"
         ]
 
         for layer in dense_layers[:-1]:
             activation = layer.activation.__name__
-            assert activation == 'relu', (
+            assert activation == "relu", (
                 f"Dense oculta debe usar ReLU, encontrado {activation}"
             )
 
         # Verificar última capa Dense usa Softmax
         last_dense = dense_layers[-1]
         activation = last_dense.activation.__name__
-        assert activation == 'softmax', (
+        assert activation == "softmax", (
             f"Última capa Dense debe usar Softmax, encontrado {activation}"
         )
 
@@ -235,7 +228,7 @@ class TestCompiledModelProperty:
     @given(
         height=st.integers(min_value=64, max_value=256),
         width=st.integers(min_value=64, max_value=256),
-        num_classes=st.integers(min_value=2, max_value=100)
+        num_classes=st.integers(min_value=2, max_value=100),
     )
     @settings(max_examples=100, deadline=None)
     def test_model_is_compiled_with_optimizer(self, height, width, num_classes):
@@ -254,14 +247,14 @@ class TestCompiledModelProperty:
 
         # Verificar que es Adam
         optimizer_name = model.optimizer.__class__.__name__
-        assert optimizer_name == 'Adam', (
+        assert optimizer_name == "Adam", (
             f"Se esperaba optimizer Adam, encontrado {optimizer_name}"
         )
 
     @given(
         height=st.integers(min_value=64, max_value=256),
         width=st.integers(min_value=64, max_value=256),
-        num_classes=st.integers(min_value=2, max_value=100)
+        num_classes=st.integers(min_value=2, max_value=100),
     )
     @settings(max_examples=100, deadline=None)
     def test_model_is_compiled_with_loss_function(self, height, width, num_classes):
@@ -280,14 +273,14 @@ class TestCompiledModelProperty:
 
         # Verificar que es categorical_crossentropy
         loss_name = model.loss
-        assert loss_name == 'categorical_crossentropy', (
+        assert loss_name == "categorical_crossentropy", (
             f"Se esperaba loss categorical_crossentropy, encontrado {loss_name}"
         )
 
     @given(
         height=st.integers(min_value=64, max_value=128),
         width=st.integers(min_value=64, max_value=128),
-        num_classes=st.integers(min_value=2, max_value=10)
+        num_classes=st.integers(min_value=2, max_value=10),
     )
     @settings(max_examples=10, deadline=None)
     def test_model_is_compiled_with_metrics(self, height, width, num_classes):
@@ -300,20 +293,18 @@ class TestCompiledModelProperty:
         model = create_model(input_shape, num_classes)
 
         # Verificar que el modelo está compilado
-        assert model.compiled, (
-            "El modelo debe estar compilado"
-        )
+        assert model.compiled, "El modelo debe estar compilado"
 
         # Obtener configuración de compilación
         compile_config = model.get_compile_config()
 
         # Verificar que metrics está configurado
-        assert 'metrics' in compile_config, (
+        assert "metrics" in compile_config, (
             "El modelo debe tener metrics en su configuración"
         )
 
         # Verificar que accuracy está en las métricas
-        metrics = compile_config['metrics']
-        assert 'accuracy' in metrics, (
+        metrics = compile_config["metrics"]
+        assert "accuracy" in metrics, (
             f"Se esperaba metric 'accuracy', encontradas {metrics}"
         )

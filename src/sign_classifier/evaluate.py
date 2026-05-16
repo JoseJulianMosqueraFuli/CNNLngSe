@@ -11,7 +11,7 @@ from sklearn.metrics import (
 )
 from tensorflow.keras.models import Model
 
-from .config import IMAGE_HEIGHT, IMAGE_WIDTH, CLASSES
+from .config import IMAGE_HEIGHT, IMAGE_WIDTH
 from .data_loader import create_data_generators
 from .exceptions import ModelError
 

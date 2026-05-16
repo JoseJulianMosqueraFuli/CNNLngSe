@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 from tensorflow.keras.models import Model
-from tensorflow.keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.preprocessing.image import img_to_array, load_img
 
 from .exceptions import PredictionError
 
@@ -51,7 +51,7 @@ def predict_class(model: Model, image: np.ndarray, classes: list) -> str:
     if predicted_index >= len(classes):
         raise PredictionError(
             f"Índice predicho {predicted_index} fuera del rango de clases "
-            f"(0-{len(classes)-1})"
+            f"(0-{len(classes) - 1})"
         )
 
     return classes[predicted_index]

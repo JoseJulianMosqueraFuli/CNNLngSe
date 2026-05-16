@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "sign_classifier", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.12"
 tensorflow = ">=2.10"
 numpy = "^1.24"
 pillow = "^10.0"
@@ -24,7 +24,7 @@ mypy = "^1.15"
 sign-classifier = "sign_classifier.cli:main"
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py312"
 line-length = 88
 extend-exclude = [".venv", ".git", "__pycache__"]
 
@@ -36,7 +36,7 @@ ignore = ["N818"]
 quote-style = "double"
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.12"
 strict = false
 ignore_missing_imports = true
 exclude = [".venv", ".git"]

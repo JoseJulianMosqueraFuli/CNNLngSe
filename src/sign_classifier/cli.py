@@ -17,6 +17,7 @@ from .config import (
 )
 from .train import train_model
 from .predict import load_and_preprocess_image, predict_class
+from .evaluate import evaluate_model
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,15 @@ def predict(args: argparse.Namespace) -> None:
     image = load_and_preprocess_image(args.image, (IMAGE_HEIGHT, IMAGE_WIDTH))
     clase = predict_class(model, image, CLASSES)
     logger.info("Clase predicha: %s", clase)
+
+
+def evaluate(args: argparse.Namespace) -> None:
+    model = load_model(args.model_path)
+    metrics = evaluate_model(model, args.val_path)
+    logger.info("Accuracy:  %.4f", metrics["accuracy"])
+    logger.info("Precision: %.4f", metrics["precision"])
+    logger.info("Recall:    %.4f", metrics["recall"])
+    logger.info("F1-Score:  %.4f", metrics["f1_score"])
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -92,6 +102,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Ruta al modelo entrenado",
     )
     predict_parser.set_defaults(func=predict)
+
+    evaluate_parser = subparsers.add_parser("evaluate", help="Evaluar el modelo")
+    evaluate_parser.add_argument(
+        "--model-path",
+        type=str,
+        default=MODEL_PATH,
+        help="Ruta al modelo entrenado",
+    )
+    evaluate_parser.add_argument(
+        "--val-path",
+        type=str,
+        default=VALIDATION_DATA_PATH,
+        help="Ruta a datos de validación",
+    )
+    evaluate_parser.set_defaults(func=evaluate)
 
     return parser
 

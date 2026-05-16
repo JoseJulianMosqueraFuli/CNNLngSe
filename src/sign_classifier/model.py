@@ -12,6 +12,7 @@ from tensorflow.keras.layers import (
     Flatten,
     Dense,
     Dropout,
+    Input,
 )
 from tensorflow.keras.optimizers import Adam
 
@@ -40,8 +41,9 @@ def create_model(input_shape: tuple, num_classes: int) -> Sequential:
         raise ValueError("num_classes debe ser un entero >= 2")
 
     model = Sequential([
+        Input(shape=input_shape),
         # Bloque Convolucional 1 (32 filtros)
-        Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
+        Conv2D(32, (3, 3), activation='relu'),
         BatchNormalization(),
         MaxPooling2D(pool_size=(2, 2)),
 

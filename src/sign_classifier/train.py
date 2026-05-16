@@ -5,9 +5,15 @@ Implementa el flujo de entrenamiento del modelo CNN usando APIs modernas
 de TensorFlow/Keras.
 """
 
+import logging
 from pathlib import Path
 
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from tensorflow.keras.callbacks import (
+    ModelCheckpoint,
+    EarlyStopping,
+    ReduceLROnPlateau,
+    TensorBoard,
+)
 
 from .config import (
     IMAGE_HEIGHT,
@@ -18,10 +24,13 @@ from .config import (
     TRAINING_DATA_PATH,
     VALIDATION_DATA_PATH,
     MODEL_PATH,
+    LOG_DIR,
     NUM_CLASSES,
 )
 from .model import create_model
 from .data_loader import create_data_generators
+
+logger = logging.getLogger(__name__)
 
 
 def train_model(
@@ -77,6 +86,19 @@ def train_model(
             patience=5,
             restore_best_weights=True,
             verbose=verbose
+        ),
+        ReduceLROnPlateau(
+            monitor='val_loss',
+            factor=0.5,
+            patience=3,
+            min_lr=1e-6,
+            verbose=verbose
+        ),
+        TensorBoard(
+            log_dir=LOG_DIR,
+            histogram_freq=1,
+            write_graph=True,
+            update_freq='epoch'
         )
     ]
 
@@ -97,21 +119,18 @@ def train_model(
 
 def main():
     """Punto de entrada principal para entrenamiento."""
-    print("Iniciando entrenamiento del clasificador de señas...")
-    print(f"Épocas: {EPOCHS}")
-    print(f"Batch size: {BATCH_SIZE}")
-    print(f"Datos de entrenamiento: {TRAINING_DATA_PATH}")
-    print(f"Datos de validación: {VALIDATION_DATA_PATH}")
-    print(f"Modelo se guardará en: {MODEL_PATH}")
-    print("-" * 50)
+    logger.info("Iniciando entrenamiento del clasificador de señas...")
+    logger.info("Épocas: %d", EPOCHS)
+    logger.info("Batch size: %d", BATCH_SIZE)
+    logger.info("Datos de entrenamiento: %s", TRAINING_DATA_PATH)
+    logger.info("Datos de validación: %s", VALIDATION_DATA_PATH)
+    logger.info("Modelo se guardará en: %s", MODEL_PATH)
 
     _, history = train_model()
 
-    print("-" * 50)
-    print("Entrenamiento completado.")
     best_val_acc = max(history.history['val_accuracy'])
-    print(f"Mejor accuracy de validación: {best_val_acc:.4f}")
-    print(f"Modelo guardado en: {MODEL_PATH}")
+    logger.info("Entrenamiento completado. Mejor accuracy: %.4f", best_val_acc)
+    logger.info("Modelo guardado en: %s", MODEL_PATH)
 
 
 if __name__ == "__main__":

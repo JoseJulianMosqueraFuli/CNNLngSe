@@ -14,7 +14,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - uses: pre-commit/action@v3.0.1
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Install dependencies
+        run: poetry install
+      - name: Run ruff
+        run: poetry run ruff check src/sign_classifier/ tests/
 
   test:
     runs-on: ubuntu-latest

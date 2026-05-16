@@ -59,8 +59,8 @@ def train_model(
     model_dir = Path(model_path).parent
     model_dir.mkdir(parents=True, exist_ok=True)
 
-    # Crear generadores de datos
-    train_generator, val_generator = create_data_generators(
+    # Crear datasets de datos
+    train_ds, val_ds, _ = create_data_generators(
         train_path=train_path,
         val_path=val_path,
         target_size=(IMAGE_HEIGHT, IMAGE_WIDTH),
@@ -102,11 +102,11 @@ def train_model(
         )
     ]
 
-    # Entrenar modelo usando fit() (no fit_generator() deprecado)
+    # Entrenar modelo
     history = model.fit(
-        train_generator,
+        train_ds,
         epochs=epochs,
-        validation_data=val_generator,
+        validation_data=val_ds,
         callbacks=callbacks,
         verbose=verbose
     )

@@ -8,8 +8,8 @@ packages = [{include = "sign_classifier", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-tensorflow = ">=2.10"
-numpy = "^1.24"
+tensorflow = ">=2.18"
+numpy = ">=2.1"
 pillow = "^10.0"
 scikit-learn = "^1.3"
 

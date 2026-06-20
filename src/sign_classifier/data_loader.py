@@ -2,16 +2,25 @@ import logging
 from pathlib import Path
 
 import tensorflow as tf
+from tensorflow.keras.layers import (
+    RandomBrightness,
+    RandomContrast,
+    RandomFlip,
+    RandomRotation,
+    RandomZoom,
+)
 
 logger = logging.getLogger(__name__)
 
-AUGMENTATION = {
-    "flip": True,
-    "brightness_max_delta": 0.2,
-    "contrast_lower": 0.8,
-    "contrast_upper": 1.2,
-    "rotation_max_degrees": 20,
-}
+AUGMENTATION = tf.keras.Sequential(
+    [
+        RandomFlip("horizontal"),
+        RandomRotation(factor=20 / 360.0),
+        RandomZoom(height_factor=0.1, width_factor=0.1),
+        RandomBrightness(factor=0.2),
+        RandomContrast(factor=0.2),
+    ]
+)
 
 
 def _parse_class_names(path: str) -> list[str]:
@@ -25,43 +34,8 @@ def _parse_class_names(path: str) -> list[str]:
 
 
 def _augment(image: tf.Tensor, label: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
-    if AUGMENTATION["flip"]:
-        image = tf.image.random_flip_left_right(image)
-    if AUGMENTATION["brightness_max_delta"]:
-        image = tf.image.random_brightness(
-            image, max_delta=AUGMENTATION["brightness_max_delta"]
-        )
-    if AUGMENTATION["contrast_lower"] and AUGMENTATION["contrast_upper"]:
-        image = tf.image.random_contrast(
-            image,
-            lower=AUGMENTATION["contrast_lower"],
-            upper=AUGMENTATION["contrast_upper"],
-        )
-    if AUGMENTATION["rotation_max_degrees"]:
-        angle = tf.random.uniform(
-            [],
-            -AUGMENTATION["rotation_max_degrees"],
-            AUGMENTATION["rotation_max_degrees"],
-        ) * (3.14159265 / 180.0)
-        image = tfa_image_rotate(image, angle)
+    image = AUGMENTATION(image, training=True)
     return image, label
-
-
-def tfa_image_rotate(image: tf.Tensor, angle: tf.Tensor) -> tf.Tensor:
-    image = tf.cast(image, tf.float32)
-    original_dtype = image.dtype
-    image = tf.expand_dims(image, 0)
-    sin = tf.sin(angle)
-    cos = tf.cos(angle)
-    transform = [cos, -sin, 0, sin, cos, 0, 0, 0]
-    image = tf.raw_ops.ImageProjectiveTransformV3(
-        images=image,
-        transforms=[transform],
-        output_shape=tf.shape(image)[1:3],
-        interpolation="BILINEAR",
-        fill_value=0.0,
-    )
-    return tf.cast(tf.squeeze(image, 0), original_dtype)
 
 
 def _normalize(image: tf.Tensor, label: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:

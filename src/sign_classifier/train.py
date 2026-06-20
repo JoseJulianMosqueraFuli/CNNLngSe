@@ -17,6 +17,7 @@ from tensorflow.keras.callbacks import (
 
 from .config import (
     BATCH_SIZE,
+    CLASSES,
     EPOCHS,
     IMAGE_HEIGHT,
     IMAGE_SHAPE,
@@ -28,6 +29,7 @@ from .config import (
     VALIDATION_DATA_PATH,
 )
 from .data_loader import create_data_generators
+from .exceptions import ConfigurationError
 from .model import create_model
 
 logger = logging.getLogger(__name__)
@@ -60,12 +62,23 @@ def train_model(
     model_dir.mkdir(parents=True, exist_ok=True)
 
     # Crear datasets de datos
-    train_ds, val_ds, _ = create_data_generators(
+    train_ds, val_ds, class_names = create_data_generators(
         train_path=train_path,
         val_path=val_path,
         target_size=(IMAGE_HEIGHT, IMAGE_WIDTH),
         batch_size=batch_size,
     )
+
+    # Validar que las clases del dataset coincidan con la configuración
+    if sorted(class_names) != sorted(CLASSES):
+        raise ConfigurationError(
+            f"Clases en datos ({class_names}) no coinciden con config ({CLASSES})"
+        )
+    if len(class_names) != NUM_CLASSES:
+        raise ConfigurationError(
+            f"Número de clases en datos ({len(class_names)}) "
+            f"no coincide con NUM_CLASSES ({NUM_CLASSES})"
+        )
 
     # Crear modelo
     model = create_model(input_shape=IMAGE_SHAPE, num_classes=NUM_CLASSES)
@@ -90,6 +103,9 @@ def train_model(
     ]
 
     # Entrenar modelo
+    # ModelCheckpoint ya guarda el mejor modelo en model_path, por lo que no es
+    # necesario volver a guardar al final (evita sobrescribir el mejor con el
+    # último estado).
     history = model.fit(
         train_ds,
         epochs=epochs,
@@ -97,9 +113,6 @@ def train_model(
         callbacks=callbacks,
         verbose=verbose,
     )
-
-    # Guardar modelo final en formato .keras
-    model.save(model_path)
 
     return model, history
 

@@ -1,12 +1,28 @@
 import logging
+import os
 
 import numpy as np
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 
 from .exceptions import PredictionError
 
 logger = logging.getLogger(__name__)
+
+MAX_IMAGE_FILE_SIZE_MB = 10
+
+
+def load_model_safe(model_path: str):
+    """
+    Carga un modelo Keras en modo seguro.
+
+    El modo seguro deshabilita la ejecución de código arbitrario que podría
+    estar embebido en archivos de modelo manipulados.
+    """
+    try:
+        return load_model(model_path, safe_mode=True)
+    except Exception as exc:
+        raise PredictionError(f"No se pudo cargar el modelo: {model_path}") from exc
 
 
 def load_and_preprocess_image(image_path: str, target_size: tuple) -> np.ndarray:
@@ -16,9 +32,21 @@ def load_and_preprocess_image(image_path: str, target_size: tuple) -> np.ndarray
         )
 
     try:
-        img = load_img(image_path, target_size=target_size)
+        file_size = os.path.getsize(image_path)
     except FileNotFoundError as exc:
         raise PredictionError(f"Imagen no encontrada: {image_path}") from exc
+    except OSError as exc:
+        raise PredictionError(f"No se pudo leer la imagen: {image_path}") from exc
+
+    max_size_bytes = MAX_IMAGE_FILE_SIZE_MB * 1024 * 1024
+    if file_size > max_size_bytes:
+        raise PredictionError(
+            f"Imagen demasiado grande: {file_size / (1024 * 1024):.2f} MB. "
+            f"Máximo permitido: {MAX_IMAGE_FILE_SIZE_MB} MB."
+        )
+
+    try:
+        img = load_img(image_path, target_size=target_size)
     except Exception as e:
         raise PredictionError(
             f"Formato de imagen inválido: {image_path}. Error: {e}"

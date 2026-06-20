@@ -2,8 +2,6 @@ import argparse
 import logging
 import sys
 
-from tensorflow.keras.models import load_model
-
 from .config import (
     BATCH_SIZE,
     CLASSES,
@@ -17,7 +15,7 @@ from .config import (
 )
 from .evaluate import evaluate_model
 from .exceptions import SignClassifierError
-from .predict import load_and_preprocess_image, predict_class
+from .predict import load_and_preprocess_image, load_model_safe, predict_class
 from .train import train_model
 
 logger = logging.getLogger(__name__)
@@ -37,14 +35,14 @@ def train(args: argparse.Namespace) -> None:
 
 
 def predict(args: argparse.Namespace) -> None:
-    model = load_model(args.model_path)
+    model = load_model_safe(args.model_path)
     image = load_and_preprocess_image(args.image, (IMAGE_HEIGHT, IMAGE_WIDTH))
     clase = predict_class(model, image, CLASSES)
     logger.info("Clase predicha: %s", clase)
 
 
 def evaluate(args: argparse.Namespace) -> None:
-    model = load_model(args.model_path)
+    model = load_model_safe(args.model_path)
     metrics = evaluate_model(model, args.val_path)
     logger.info("Accuracy:  %.4f", metrics["accuracy"])
     logger.info("Precision: %.4f", metrics["precision"])

@@ -69,8 +69,10 @@ def create_data_generators(
     )
 
     autotune = tf.data.AUTOTUNE
-    train_ds = train_ds.map(_normalize, num_parallel_calls=autotune)
+    # Aplicar augmentación antes de la normalización para que las capas Keras
+    # trabajen en el rango original de la imagen [0, 255].
     train_ds = train_ds.map(_augment, num_parallel_calls=autotune)
+    train_ds = train_ds.map(_normalize, num_parallel_calls=autotune)
     train_ds = train_ds.prefetch(autotune)
 
     val_ds = val_ds.map(_normalize, num_parallel_calls=autotune)

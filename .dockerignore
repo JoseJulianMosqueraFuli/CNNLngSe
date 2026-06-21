@@ -1,0 +1,15 @@
+.venv
+.git
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.hypothesis
+.kiro
+logs
+metrics
+modelo
+modelo_savedmodel
+*.tflite
+predictions.csv
+.env

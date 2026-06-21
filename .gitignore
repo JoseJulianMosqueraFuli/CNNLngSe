@@ -130,3 +130,14 @@ dmypy.json
 
 # vscode
 .vscode/
+
+# Kiro IDE metadata
+.kiro/
+
+# Project artifacts
+logs/
+metrics/
+modelo/
+modelo_savedmodel/
+*.tflite
+predictions.csv

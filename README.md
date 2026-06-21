@@ -64,13 +64,23 @@ Input (150x150x3)
 - 🔹 **Dropout** en capas densas para prevenir overfitting
 - 🔹 **Filtros progresivos** (32 → 64 → 128) para capturar características de diferentes niveles
 
+### Transfer Learning (opcional)
+
+Si tienes más datos, puedes activar transfer learning con MobileNetV3Small:
+
+```bash
+SIGN_CLASSIFIER_USE_TRANSFER_LEARNING=true poetry run sign-classifier train
+```
+
+Esto congela el backbone preentrenado en ImageNet y solo entrena el clasificador final.
+
 ---
 
 ## 🚀 Instalación
 
 ### Prerrequisitos
 
-- Python 3.9 o superior
+- Python 3.12 o superior
 - [Poetry](https://python-poetry.org/docs/#installation) (gestor de dependencias)
 
 ### Pasos
@@ -103,30 +113,24 @@ sign-classifier/
 ├── src/
 │   └── sign_classifier/        # Paquete principal (código modernizado)
 │       ├── __init__.py
+│       ├── batch_predict.py    # Predicción por lotes
 │       ├── cli.py              # Interfaz de línea de comandos
 │       ├── config.py           # Configuración centralizada
 │       ├── data_loader.py      # Carga y augmentación de datos
 │       ├── evaluate.py         # Evaluación del modelo
 │       ├── exceptions.py       # Excepciones personalizadas
+│       ├── export.py           # Exportación a SavedModel/TFLite
 │       ├── model.py            # Arquitectura CNN mejorada
 │       ├── predict.py          # Módulo de predicción
 │       └── train.py            # Script de entrenamiento moderno
-├── tests/
-│   ├── __init__.py
-│   ├── test_model.py           # Tests de propiedades del modelo
-│   └── test_predict.py         # Tests de predicción
-├── data/
-│   ├── entrenamiento/          # Datos de entrenamiento (por clase)
-│   │   ├── a/
-│   │   ├── b/
-│   │   └── c/
-│   └── validacion/             # Datos de validación (por clase)
-│       ├── a/
-│       ├── b/
-│       └── c/
+├── tests/                      # Tests unitarios y de integración
+├── data/                       # Datos de entrenamiento y validación
 ├── modelo/                     # Modelos entrenados (.keras)
+├── metrics/                    # Métricas de entrenamiento (CSV/JSON)
+├── Dockerfile                  # Imagen Docker del proyecto
 ├── pyproject.toml              # Configuración de Poetry
 ├── poetry.lock                 # Lock de dependencias
+├── LICENSE                     # Licencia MIT
 └── README.md
 ```
 
@@ -148,6 +152,12 @@ poetry run sign-classifier evaluate
 
 # Predecir una imagen
 poetry run sign-classifier predict ruta/a/imagen.jpg
+
+# Predecir un directorio completo
+poetry run sign-classifier batch-predict ./carpeta_imagenes --output predicciones.csv
+
+# Exportar modelo
+poetry run sign-classifier export
 ```
 
 ### Entrenamiento
@@ -200,6 +210,70 @@ model = create_model(IMAGE_SHAPE, NUM_CLASSES)
 # O cargar modelo entrenado de forma segura
 from sign_classifier.predict import load_model_safe
 model = load_model_safe("modelo/modelo.keras")
+```
+
+### Configuración por variables de entorno
+
+Toda la configuración puede sobrescribirse con variables de entorno usando el
+prefijo `SIGN_CLASSIFIER_`:
+
+```bash
+SIGN_CLASSIFIER_EPOCHS=50 \
+SIGN_CLASSIFIER_BATCH_SIZE=16 \
+SIGN_CLASSIFIER_LEARNING_RATE=0.001 \
+poetry run sign-classifier train
+```
+
+Variables disponibles:
+
+| Variable | Descripción | Default |
+|---|---|---|
+| `SIGN_CLASSIFIER_EPOCHS` | Épocas de entrenamiento | 20 |
+| `SIGN_CLASSIFIER_BATCH_SIZE` | Tamaño del batch | 32 |
+| `SIGN_CLASSIFIER_LEARNING_RATE` | Learning rate de Adam | 0.0004 |
+| `SIGN_CLASSIFIER_TRAINING_DATA_PATH` | Ruta de entrenamiento | `./data/entrenamiento` |
+| `SIGN_CLASSIFIER_VALIDATION_DATA_PATH` | Ruta de validación | `./data/validacion` |
+| `SIGN_CLASSIFIER_MODEL_PATH` | Ruta del modelo | `./modelo/modelo.keras` |
+| `SIGN_CLASSIFIER_CLASSES` | Lista de clases separadas por coma | `a,b,c` |
+| `SIGN_CLASSIFIER_USE_TRANSFER_LEARNING` | Usar transfer learning | `false` |
+| `SIGN_CLASSIFIER_TRANSFER_LEARNING_BACKBONE` | Backbone preentrenado | `mobilenet_v3` |
+
+### Métricas de entrenamiento
+
+Al entrenar se generan automáticamente:
+
+- `metrics/history.csv`: métricas por época.
+- `metrics/metrics.json`: resumen con mejor val_accuracy, final loss, etc.
+
+### Predicción por lotes
+
+```bash
+poetry run sign-classifier batch-predict ./imagenes --output predicciones.csv
+```
+
+El CSV incluye la clase predicha, confianza y probabilidad por clase.
+
+### Exportar modelo
+
+```bash
+# SavedModel + TFLite
+poetry run sign-classifier export
+
+# Solo TFLite
+poetry run sign-classifier export --format tflite --tflite-path modelo.tflite
+```
+
+### Docker
+
+```bash
+# Construir imagen
+docker build -t sign-classifier .
+
+# Entrenar
+docker run -v $(pwd)/data:/app/data -v $(pwd)/modelo:/app/modelo sign-classifier train
+
+# Predecir
+docker run -v $(pwd)/modelo:/app/modelo -v $(pwd)/imagen.jpg:/app/imagen.jpg sign-classifier predict /app/imagen.jpg
 ```
 
 ---

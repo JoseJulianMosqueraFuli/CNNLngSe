@@ -11,9 +11,16 @@ from sklearn.metrics import (
 )
 from tensorflow.keras.models import Model
 
-from .config import IMAGE_HEIGHT, IMAGE_WIDTH
-from .data_loader import create_data_generators
+from .config import (
+    IMAGE_HEIGHT,
+    IMAGE_WIDTH,
+    MODEL_PATH,
+    VALIDATION_DATA_PATH,
+    setup_logging,
+)
+from .data_loader import create_validation_dataset
 from .exceptions import ModelError
+from .predict import load_model_safe
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +36,7 @@ def evaluate_model(model: Model, val_path: str) -> dict:
     if model is None:
         raise ModelError("Se requiere un modelo cargado para evaluar")
 
-    _, val_ds, class_names = create_data_generators(
-        train_path=val_path,
+    val_ds, class_names = create_validation_dataset(
         val_path=val_path,
         target_size=(IMAGE_HEIGHT, IMAGE_WIDTH),
         batch_size=32,
@@ -63,3 +69,23 @@ def evaluate_model(model: Model, val_path: str) -> dict:
         "confusion_matrix": cm.tolist(),
         "classification_report": report,
     }
+
+
+def main():
+    """Punto de entrada principal para evaluación."""
+    setup_logging()
+    logger.info("Iniciando evaluación del clasificador de señas...")
+    logger.info("Modelo: %s", MODEL_PATH)
+    logger.info("Datos de validación: %s", VALIDATION_DATA_PATH)
+
+    model = load_model_safe(MODEL_PATH)
+    metrics = evaluate_model(model, VALIDATION_DATA_PATH)
+
+    logger.info("Accuracy:  %.4f", metrics["accuracy"])
+    logger.info("Precision: %.4f", metrics["precision"])
+    logger.info("Recall:    %.4f", metrics["recall"])
+    logger.info("F1-Score:  %.4f", metrics["f1_score"])
+
+
+if __name__ == "__main__":
+    main()

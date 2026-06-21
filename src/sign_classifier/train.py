@@ -27,6 +27,7 @@ from .config import (
     NUM_CLASSES,
     TRAINING_DATA_PATH,
     VALIDATION_DATA_PATH,
+    setup_logging,
 )
 from .data_loader import create_data_generators
 from .exceptions import ConfigurationError
@@ -119,6 +120,7 @@ def train_model(
 
 def main():
     """Punto de entrada principal para entrenamiento."""
+    setup_logging()
     logger.info("Iniciando entrenamiento del clasificador de señas...")
     logger.info("Épocas: %d", EPOCHS)
     logger.info("Batch size: %d", BATCH_SIZE)

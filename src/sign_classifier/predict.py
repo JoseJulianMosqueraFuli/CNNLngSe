@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 
@@ -5,6 +6,7 @@ import numpy as np
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 
+from .config import CLASSES, IMAGE_HEIGHT, IMAGE_WIDTH, MODEL_PATH, setup_logging
 from .exceptions import PredictionError
 
 logger = logging.getLogger(__name__)
@@ -83,3 +85,31 @@ def predict_class(model: Model, image: np.ndarray, classes: list) -> str:
         )
 
     return classes[predicted_index]
+
+
+def main():
+    """Punto de entrada principal para predicción de una imagen."""
+    setup_logging()
+    parser = argparse.ArgumentParser(description="Predecir clase de una imagen")
+    parser.add_argument("image", type=str, help="Ruta a la imagen a clasificar")
+    parser.add_argument(
+        "--model-path",
+        type=str,
+        default=MODEL_PATH,
+        help="Ruta al modelo entrenado",
+    )
+    args = parser.parse_args()
+
+    logger.info("Cargando modelo desde %s", args.model_path)
+    model = load_model_safe(args.model_path)
+
+    logger.info("Preprocesando imagen %s", args.image)
+    image = load_and_preprocess_image(args.image, (IMAGE_HEIGHT, IMAGE_WIDTH))
+
+    predicted_class = predict_class(model, image, CLASSES)
+    logger.info("Clase predicha: %s", predicted_class)
+    print(predicted_class)
+
+
+if __name__ == "__main__":
+    main()

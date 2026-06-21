@@ -2,6 +2,7 @@ import argparse
 import logging
 import sys
 
+from .batch_predict import discover_images, predict_batch, save_predictions_csv
 from .config import (
     BATCH_SIZE,
     CLASSES,
@@ -15,6 +16,7 @@ from .config import (
 )
 from .evaluate import evaluate_model
 from .exceptions import SignClassifierError
+from .export import export_to_savedmodel, export_to_tflite
 from .predict import load_and_preprocess_image, load_model_safe, predict_class
 from .train import train_model
 
@@ -48,6 +50,23 @@ def evaluate(args: argparse.Namespace) -> None:
     logger.info("Precision: %.4f", metrics["precision"])
     logger.info("Recall:    %.4f", metrics["recall"])
     logger.info("F1-Score:  %.4f", metrics["f1_score"])
+
+
+def batch_predict(args: argparse.Namespace) -> None:
+    model = load_model_safe(args.model_path)
+    image_paths = discover_images(args.input_dir)
+    if not image_paths:
+        logger.warning("No se encontraron imágenes en %s", args.input_dir)
+        return
+    results = predict_batch(model, image_paths, CLASSES)
+    save_predictions_csv(results, args.output)
+
+
+def export(args: argparse.Namespace) -> None:
+    if args.format in ("savedmodel", "both"):
+        export_to_savedmodel(args.model_path, args.savedmodel_dir)
+    if args.format in ("tflite", "both"):
+        export_to_tflite(args.model_path, args.tflite_path)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -114,6 +133,56 @@ def build_parser() -> argparse.ArgumentParser:
         help="Ruta a datos de validación",
     )
     evaluate_parser.set_defaults(func=evaluate)
+
+    batch_parser = subparsers.add_parser(
+        "batch-predict", help="Predecir un directorio de imágenes"
+    )
+    batch_parser.add_argument(
+        "input_dir", type=str, help="Directorio con imágenes a clasificar"
+    )
+    batch_parser.add_argument(
+        "--output",
+        type=str,
+        default="./predictions.csv",
+        help="Ruta del archivo CSV de salida",
+    )
+    batch_parser.add_argument(
+        "--model-path",
+        type=str,
+        default=MODEL_PATH,
+        help="Ruta al modelo entrenado",
+    )
+    batch_parser.set_defaults(func=batch_predict)
+
+    export_parser = subparsers.add_parser(
+        "export", help="Exportar modelo a SavedModel o TensorFlow Lite"
+    )
+    export_parser.add_argument(
+        "--model-path",
+        type=str,
+        default=MODEL_PATH,
+        help="Ruta al modelo .keras",
+    )
+    export_parser.add_argument(
+        "--savedmodel-dir",
+        type=str,
+        default="./modelo_savedmodel",
+        help="Directorio de salida para SavedModel",
+    )
+    export_parser.add_argument(
+        "--tflite-path",
+        type=str,
+        default="./modelo.tflite",
+        help="Ruta de salida para TensorFlow Lite",
+    )
+    export_parser.add_argument(
+        "--format",
+        type=str,
+        choices=["savedmodel", "tflite", "both"],
+        default="both",
+        help="Formato de exportación",
+    )
+    export_parser.set_defaults(func=export)
 
     return parser
 

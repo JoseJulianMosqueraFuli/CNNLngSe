@@ -11,7 +11,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from sign_classifier.config import IMAGE_SHAPE, NUM_CLASSES
-from sign_classifier.model import create_model
+from sign_classifier.model import create_model, create_transfer_learning_model
 
 # =============================================================================
 # Tests Unitarios Básicos
@@ -308,3 +308,27 @@ class TestCompiledModelProperty:
         assert "accuracy" in metrics, (
             f"Se esperaba metric 'accuracy', encontradas {metrics}"
         )
+
+
+class TestTransferLearningModel:
+    """Tests para el modelo basado en transfer learning."""
+
+    def test_create_transfer_learning_model_default(self):
+        """Verifica que el modelo de transfer learning se crea correctamente."""
+        model = create_transfer_learning_model(IMAGE_SHAPE, NUM_CLASSES)
+
+        assert model is not None
+        assert model.input_shape == (None, *IMAGE_SHAPE)
+        assert model.output_shape == (None, NUM_CLASSES)
+
+    def test_create_transfer_learning_model_is_compiled(self):
+        """Verifica que el modelo de transfer learning está compilado."""
+        model = create_transfer_learning_model(IMAGE_SHAPE, NUM_CLASSES)
+
+        assert model.optimizer is not None
+        assert model.loss is not None
+
+    def test_create_transfer_learning_model_invalid_backbone(self):
+        """Verifica que se lanza error con backbone no soportado."""
+        with pytest.raises(ValueError, match="Backbone no soportado"):
+            create_transfer_learning_model(IMAGE_SHAPE, NUM_CLASSES, backbone="resnet")

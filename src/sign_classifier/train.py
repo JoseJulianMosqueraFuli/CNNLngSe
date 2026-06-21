@@ -5,10 +5,13 @@ Implementa el flujo de entrenamiento del modelo CNN usando APIs modernas
 de TensorFlow/Keras.
 """
 
+import json
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
 
 from tensorflow.keras.callbacks import (
+    CSVLogger,
     EarlyStopping,
     ModelCheckpoint,
     ReduceLROnPlateau,
@@ -23,15 +26,18 @@ from .config import (
     IMAGE_SHAPE,
     IMAGE_WIDTH,
     LOG_DIR,
+    METRICS_DIR,
     MODEL_PATH,
     NUM_CLASSES,
     TRAINING_DATA_PATH,
+    TRANSFER_LEARNING_BACKBONE,
+    USE_TRANSFER_LEARNING,
     VALIDATION_DATA_PATH,
     setup_logging,
 )
 from .data_loader import create_data_generators
 from .exceptions import ConfigurationError
-from .model import create_model
+from .model import create_model, create_transfer_learning_model
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +64,11 @@ def train_model(
     Returns:
         Tupla (modelo entrenado, historial de entrenamiento)
     """
-    # Crear directorio para el modelo si no existe
+    # Crear directorios para el modelo y métricas si no existen
     model_dir = Path(model_path).parent
     model_dir.mkdir(parents=True, exist_ok=True)
+    metrics_dir = Path(METRICS_DIR)
+    metrics_dir.mkdir(parents=True, exist_ok=True)
 
     # Crear datasets de datos
     train_ds, val_ds, class_names = create_data_generators(
@@ -82,9 +90,21 @@ def train_model(
         )
 
     # Crear modelo
-    model = create_model(input_shape=IMAGE_SHAPE, num_classes=NUM_CLASSES)
+    if USE_TRANSFER_LEARNING:
+        logger.info(
+            "Usando transfer learning con backbone: %s",
+            TRANSFER_LEARNING_BACKBONE,
+        )
+        model = create_transfer_learning_model(
+            input_shape=IMAGE_SHAPE,
+            num_classes=NUM_CLASSES,
+            backbone=TRANSFER_LEARNING_BACKBONE,
+        )
+    else:
+        model = create_model(input_shape=IMAGE_SHAPE, num_classes=NUM_CLASSES)
 
     # Configurar callbacks
+    csv_path = metrics_dir / "history.csv"
     callbacks = [
         ModelCheckpoint(
             filepath=model_path,
@@ -98,10 +118,23 @@ def train_model(
         ReduceLROnPlateau(
             monitor="val_loss", factor=0.5, patience=3, min_lr=1e-6, verbose=verbose
         ),
-        TensorBoard(
-            log_dir=LOG_DIR, histogram_freq=1, write_graph=True, update_freq="epoch"
-        ),
+        CSVLogger(filename=str(csv_path), append=False, separator=","),
     ]
+
+    # TensorBoard es opcional; si no está instalado, se omite el callback.
+    try:
+        import tensorboard  # noqa: F401
+    except ImportError:
+        logger.warning(
+            "TensorBoard no está instalado. El entrenamiento continuará sin "
+            "registro de TensorBoard."
+        )
+    else:
+        callbacks.append(
+            TensorBoard(
+                log_dir=LOG_DIR, histogram_freq=1, write_graph=True, update_freq="epoch"
+            )
+        )
 
     # Entrenar modelo
     # ModelCheckpoint ya guarda el mejor modelo en model_path, por lo que no es
@@ -116,6 +149,27 @@ def train_model(
     )
 
     return model, history
+
+
+def _save_metrics_summary(history, metrics_dir: Path) -> None:
+    """Guarda un resumen de métricas de entrenamiento en JSON."""
+    history_dict = history.history
+    summary = {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "epochs_trained": len(history_dict.get("loss", [])),
+        "best_train_accuracy": max(history_dict.get("accuracy", [0.0])),
+        "best_val_accuracy": max(history_dict.get("val_accuracy", [0.0])),
+        "best_train_loss": min(history_dict.get("loss", [float("inf")])),
+        "best_val_loss": min(history_dict.get("val_loss", [float("inf")])),
+        "final_train_accuracy": history_dict.get("accuracy", [0.0])[-1],
+        "final_val_accuracy": history_dict.get("val_accuracy", [0.0])[-1],
+        "final_train_loss": history_dict.get("loss", [float("inf")])[-1],
+        "final_val_loss": history_dict.get("val_loss", [float("inf")])[-1],
+    }
+    metrics_path = metrics_dir / "metrics.json"
+    with open(metrics_path, "w", encoding="utf-8") as f:
+        json.dump(summary, f, indent=2)
+    logger.info("Métricas guardadas en: %s", metrics_path)
 
 
 def main():
@@ -133,6 +187,8 @@ def main():
     best_val_acc = max(history.history["val_accuracy"])
     logger.info("Entrenamiento completado. Mejor accuracy: %.4f", best_val_acc)
     logger.info("Modelo guardado en: %s", MODEL_PATH)
+
+    _save_metrics_summary(history, Path(METRICS_DIR))
 
 
 if __name__ == "__main__":

@@ -4,14 +4,17 @@ Módulo del modelo CNN para clasificación de señas.
 Define la arquitectura de la red neuronal convolucional mejorada.
 """
 
+from tensorflow.keras.applications import MobileNetV3Small
 from tensorflow.keras.layers import (
     BatchNormalization,
     Conv2D,
     Dense,
     Dropout,
     Flatten,
+    GlobalAveragePooling2D,
     Input,
     MaxPooling2D,
+    Rescaling,
 )
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
@@ -61,6 +64,56 @@ def create_model(input_shape: tuple, num_classes: int) -> Sequential:
             Dropout(0.5),
             Dense(128, activation="relu"),
             Dropout(0.3),
+            Dense(num_classes, activation="softmax"),
+        ]
+    )
+
+    model.compile(
+        optimizer=Adam(learning_rate=LEARNING_RATE),
+        loss="categorical_crossentropy",
+        metrics=["accuracy"],
+    )
+
+    return model
+
+
+def create_transfer_learning_model(
+    input_shape: tuple, num_classes: int, backbone: str = "mobilenet_v3"
+) -> Sequential:
+    """
+    Crea un modelo basado en transfer learning.
+
+    Args:
+        input_shape: Tupla (height, width, channels)
+        num_classes: Número de clases a clasificar
+        backbone: Backbone preentrenado a usar. Actualmente solo "mobilenet_v3".
+
+    Returns:
+        Modelo Keras compilado
+
+    Raises:
+        ValueError: Si el backbone no está soportado.
+    """
+    if backbone != "mobilenet_v3":
+        raise ValueError(f"Backbone no soportado: {backbone}")
+
+    base_model = MobileNetV3Small(
+        input_shape=input_shape,
+        include_top=False,
+        weights="imagenet",
+    )
+    base_model.trainable = False
+
+    model = Sequential(
+        [
+            Input(shape=input_shape),
+            # MobileNetV3 espera valores en [-1, 1]. El data_loader normaliza
+            # a [0, 1], así que reescalamos al rango esperado.
+            Rescaling(scale=2.0, offset=-1.0),
+            base_model,
+            GlobalAveragePooling2D(),
+            Dense(256, activation="relu"),
+            Dropout(0.5),
             Dense(num_classes, activation="softmax"),
         ]
     )

@@ -7,6 +7,7 @@ from tensorflow.keras.layers import (
     RandomContrast,
     RandomFlip,
     RandomRotation,
+    RandomTranslation,
     RandomZoom,
 )
 
@@ -17,10 +18,11 @@ logger = logging.getLogger(__name__)
 AUGMENTATION = tf.keras.Sequential(
     [
         RandomFlip("horizontal"),
-        RandomRotation(factor=20 / 360.0),
-        RandomZoom(height_factor=0.1, width_factor=0.1),
-        RandomBrightness(factor=0.2),
-        RandomContrast(factor=0.2),
+        RandomRotation(factor=25 / 360.0),
+        RandomZoom(height_factor=0.15, width_factor=0.15),
+        RandomTranslation(height_factor=0.1, width_factor=0.1),
+        RandomBrightness(factor=0.25),
+        RandomContrast(factor=0.25),
     ]
 )
 

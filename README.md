@@ -120,6 +120,8 @@ sign-classifier/
 │       ├── evaluate.py         # Evaluación del modelo
 │       ├── exceptions.py       # Excepciones personalizadas
 │       ├── export.py           # Exportación a SavedModel/TFLite
+│       ├── generate_augmented_data.py    # Generación de datos aumentados
+│       ├── integrate_external_dataset.py # Integración de datasets externos
 │       ├── model.py            # Arquitectura CNN mejorada
 │       ├── predict.py          # Módulo de predicción
 │       └── train.py            # Script de entrenamiento moderno
@@ -274,6 +276,42 @@ docker run -v $(pwd)/data:/app/data -v $(pwd)/modelo:/app/modelo sign-classifier
 
 # Predecir
 docker run -v $(pwd)/modelo:/app/modelo -v $(pwd)/imagen.jpg:/app/imagen.jpg sign-classifier predict /app/imagen.jpg
+```
+
+### Generar más datos de entrenamiento
+
+Si tienes pocas imágenes, puedes generar variantes aumentadas a partir de las
+imágenes reales existentes. Esto mantiene la coherencia porque parte de manos
+reales haciendo señas:
+
+```bash
+# Generar 20 variantes por imagen de entrenamiento
+poetry run python -m sign_classifier.generate_augmented_data \
+    --input-dir ./data/entrenamiento \
+    --output-dir ./data/entrenamiento \
+    --variants-per-image 20
+
+# Generar 5 variantes por imagen de validación
+poetry run python -m sign_classifier.generate_augmented_data \
+    --input-dir ./data/validacion \
+    --output-dir ./data/validacion \
+    --variants-per-image 5
+```
+
+Las transformaciones aplicadas son realistas: rotación, zoom, traslación,
+brillo, contraste, saturación, desenfoque, ruido leve, gamma y recortes.
+
+### Integrar datasets externos
+
+Si descargas un dataset público de ASL (por ejemplo, de Kaggle o Roboflow),
+puedes integrarlo fácilmente:
+
+```bash
+poetry run python -m sign_classifier.integrate_external_dataset \
+    --source-dir ./dataset_externo \
+    --target-dir ./data/entrenamiento \
+    --split-ratio 0.8 \
+    --val-target-dir ./data/validacion
 ```
 
 ---

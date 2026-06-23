@@ -19,6 +19,7 @@ pytest = "^9.0"
 hypothesis = "^6.92"
 ruff = "^0.9"
 mypy = "^1.15"
+kagglehub = "^1.0.2"
 
 [tool.poetry.scripts]
 sign-classifier = "sign_classifier.cli:main"

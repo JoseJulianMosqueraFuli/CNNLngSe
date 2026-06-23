@@ -141,3 +141,23 @@ modelo/
 modelo_savedmodel/
 *.tflite
 predictions.csv
+
+# Secrets and credentials (security)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+kaggle.json
+credentials*
+secrets/
+config/local*
+config/*_local*
+*.secret
+.streamlit/secrets.toml
+.aws/
+.kube/
+*.service-account.json
+gcp-credentials.json

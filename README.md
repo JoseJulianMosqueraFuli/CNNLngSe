@@ -117,6 +117,7 @@ sign-classifier/
 │       ├── cli.py              # Interfaz de línea de comandos
 │       ├── config.py           # Configuración centralizada
 │       ├── data_loader.py      # Carga y augmentación de datos
+│       ├── download_asl_alphabet.py      # Descarga dataset de Kaggle
 │       ├── evaluate.py         # Evaluación del modelo
 │       ├── exceptions.py       # Excepciones personalizadas
 │       ├── export.py           # Exportación a SavedModel/TFLite
@@ -301,9 +302,29 @@ poetry run python -m sign_classifier.generate_augmented_data \
 Las transformaciones aplicadas son realistas: rotación, zoom, traslación,
 brillo, contraste, saturación, desenfoque, ruido leve, gamma y recortes.
 
+### Descargar dataset ASL Alphabet de Kaggle
+
+El dataset más completo y real es el **ASL Alphabet** de Kaggle (~87,000
+imágenes de 200×200 en color).
+
+Requisitos:
+1. Crear cuenta en Kaggle.
+2. Generar API token en https://www.kaggle.com/settings/account
+3. Guardar `kaggle.json` en `~/.kaggle/kaggle.json`
+
+```bash
+poetry run python -m sign_classifier.download_asl_alphabet \
+    --output-dir ./data_kaggle \
+    --classes a b c \
+    --split-ratio 0.8
+```
+
+Esto descarga solo las clases A, B, C y las organiza en `data_kaggle/entrenamiento`
+y `data_kaggle/validacion`.
+
 ### Integrar datasets externos
 
-Si descargas un dataset público de ASL (por ejemplo, de Kaggle o Roboflow),
+Si descargas un dataset real de ASL (por ejemplo, de Kaggle o Roboflow),
 puedes integrarlo fácilmente:
 
 ```bash
@@ -312,6 +333,41 @@ poetry run python -m sign_classifier.integrate_external_dataset \
     --target-dir ./data/entrenamiento \
     --split-ratio 0.8 \
     --val-target-dir ./data/validacion
+```
+
+---
+
+## 🔒 Consideraciones de seguridad
+
+### Credenciales y secretos
+
+**Nunca subas credenciales al repositorio.** El `.gitignore` ya protege los
+siguientes archivos:
+
+- `.env` y `.env.*`
+- `kaggle.json`
+- `*.pem`, `*.key`, `*.p12`, `*.pfx`
+- `credentials*`
+- `secrets/`
+- `config/local*`
+- `gcp-credentials.json`
+
+### Carga segura de modelos
+
+El proyecto usa `load_model(..., safe_mode=True)` para evitar la ejecución de
+código arbitrario al cargar modelos `.keras` potencialmente manipulados.
+
+### Validación de imágenes
+
+El módulo de predicción rechaza imágenes mayores a 10 MB para prevenir ataques
+de denegación de servicio.
+
+### Dependencias
+
+El proyecto incluye auditoría de dependencias con `pip-audit`. Puedes ejecutar:
+
+```bash
+poetry run python -m pip_audit --desc
 ```
 
 ---

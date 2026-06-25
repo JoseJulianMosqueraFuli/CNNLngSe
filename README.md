@@ -131,6 +131,7 @@ sign-classifier/
 ├── modelo/                     # Modelos entrenados (.keras)
 ├── metrics/                    # Métricas de entrenamiento (CSV/JSON)
 ├── Dockerfile                  # Imagen Docker del proyecto
+├── .env.example                # Plantilla de variables de entorno
 ├── pyproject.toml              # Configuración de Poetry
 ├── poetry.lock                 # Lock de dependencias
 ├── LICENSE                     # Licencia MIT
@@ -225,6 +226,12 @@ SIGN_CLASSIFIER_EPOCHS=50 \
 SIGN_CLASSIFIER_BATCH_SIZE=16 \
 SIGN_CLASSIFIER_LEARNING_RATE=0.001 \
 poetry run sign-classifier train
+```
+
+Puedes copiar `.env.example` a `.env` y modificar los valores:
+
+```bash
+cp .env.example .env
 ```
 
 Variables disponibles:
